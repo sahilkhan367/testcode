@@ -1,42 +1,22 @@
-import os
 import subprocess
-import time
 
-def write_wpa_supplicant_conf(ssid, password):
-    config_content = f"""
-    network={{
-        ssid="{ssid}"
-        psk="{password}"
-    }}
-    """
-    with open('/etc/wpa_supplicant/wpa_supplicant.conf', 'w') as conf_file:
-        conf_file.write(config_content)
-
-def start_wpa_supplicant(interface):
+def connect_to_wifi(ssid, password):
     try:
-        # Bring up the interface
-        subprocess.run(['sudo', 'ip', 'link', 'set', interface, 'up'], check=True)
+        # Disconnect if already connected to any network
+        subprocess.run(['nmcli', 'networking', 'off'], check=True)
+        subprocess.run(['nmcli', 'networking', 'on'], check=True)
         
-        # Start wpa_supplicant
-        subprocess.run(['sudo', 'wpa_supplicant', '-B', '-i', interface, '-c', '/etc/wpa_supplicant/wpa_supplicant.conf'], check=True)
+        # Add new WiFi connection
+        subprocess.run([
+            'nmcli', 'dev', 'wifi', 'connect', ssid, 'password', password
+        ], check=True)
         
-        # Request an IP address
-        subprocess.run(['sudo', 'dhclient', interface], check=True)
-        print(f"Successfully connected to {ssid}")
+        print(f"Connected to {ssid}")
     except subprocess.CalledProcessError as e:
-        print(f"An error occurred: {e}")
-        print("Check if wpa_supplicant is installed and the network interface is correct.")
+        print(f"Failed to connect to {ssid}: {e}")
 
-# Input SSID and Password
-ssid = input("Enter the SSID of the network: ")
-password = input("Enter the password: ")
+# Replace with your network's SSID and password
+ssid = 'Your_SSID'
+password = 'Your_PASSWORD'
 
-# Write configuration
-write_wpa_supplicant_conf(ssid, password)
-
-# Wait to ensure wpa_supplicant has time to process the configuration
-time.sleep(5)
-
-# Start connection process
-interface = 'wlan0'  # Replace with your wireless interface
-start_wpa_supplicant(interface)
+connect_to_wifi(ssid, password)
